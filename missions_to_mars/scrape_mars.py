@@ -7,7 +7,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 def scrape():
     executable_path = {'executable_path': ChromeDriverManager().install()}
     browser = Browser('chrome', **executable_path, headless=False)
-
+    first_title, first_par = news(browser)
+    mars_data = {
+        'news_title' : first_title,
+        'description' : first_par,
+        'featured_image' : feature(browser),
+        'mars_table' : table(),
+        'hemisphere_image_urls' : hemis(browser)
+    }
+    return mars_data
+def news(browser):
     url = "https://mars.nasa.gov/news/"
     browser.visit(url)
     html = browser.html
@@ -17,11 +26,10 @@ def scrape():
     first_title = titles[1].text.strip()
     par = soup.find_all('div', class_ = "article_teaser_body")
     first_par = par[0].text
-    browser.quit()
+    return first_title, first_par
 
-    executable_path = {'executable_path': ChromeDriverManager().install()}
-    browser = Browser('chrome', **executable_path, headless=False)
 
+def feature(browser):
     url2 = "https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/index.html"
     browser.visit(url2)
     html2 = browser.html
@@ -30,29 +38,19 @@ def scrape():
     image = soup2.find('img', class_= "headerimage")
     image_link = image['src']
     featured_image = 'https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/' + image_link
-    browser.quit()
+    return featured_image
 
+def table():
+    return pd.read_html("https://space-facts.com/mars/")[0].to_html()
 
-
-    executable_path = {'executable_path': ChromeDriverManager().install()}
-    browser = Browser('chrome', **executable_path, headless=False)
-
-    url3 = "https://space-facts.com/mars/"
-    browser.visit(url3)
-    html3 = browser.html
-    soup3 = BeautifulSoup(html3, 'html.parser')
-
-    table = soup3.find('aside', class_ = 'widget')
-    mars_table = table.text
-    browser.quit()
-
-    executable_path = {'executable_path': ChromeDriverManager().install()}
-    browser = Browser('chrome', **executable_path, headless=False)
-
+def hemis(browser):
     url4 = "https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars"
     browser.visit(url4)
     html4 = browser.html
     soup4 = BeautifulSoup(html4, 'html.parser')
+
+    img_links = soup4.find_all('h3')
+
 
     img_links = soup4.find_all('h3')
 
@@ -62,7 +60,7 @@ def scrape():
     hemisphere_image_urls = []
 
     for img_link in img_links:
-        image_page = browser.click_link_by_partial_text(img_link.text)
+        browser.click_link_by_partial_text(img_link.text)
         html4= browser.html
         soup4 = BeautifulSoup(html4, 'html.parser')
         img_url_suffix = soup4.find('img', class_='wide-image')['src']
@@ -71,15 +69,8 @@ def scrape():
         img_dict = {'title': title, 'img_url': img_url}
         hemisphere_image_urls.append(img_dict)
         browser.back()
+    return hemisphere_image_urls
 
-    mars_data = {
-        'news_title' : first_title,
-        'description' : first_par,
-        'featured_image' : featured_image,
-        'mars_table' : mars_table,
-        'hemisphere_image_urls' : hemisphere_image_urls
-    }
     browser.quit()
-
-    return(mars_data)
+ 
 
